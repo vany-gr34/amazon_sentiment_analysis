@@ -1,0 +1,26 @@
+# ── Core data ────────────────────────────────────────────────
+pandas==2.2.2
+numpy==1.26.4
+
+# ── NLP / VADER ──────────────────────────────────────────────
+nltk==3.8.1
+
+# ── Transformers / RoBERTa ───────────────────────────────────
+transformers==4.41.2
+torch==2.3.0                # CPU-only; swap for torch==2.3.0+cu121 if GPU available
+scipy==1.13.1               # softmax used in RoBERTa scoring
+
+# ── Visualisation ────────────────────────────────────────────
+matplotlib==3.9.0
+seaborn==0.13.2
+wordcloud==1.9.3
+
+# ── Progress bar ─────────────────────────────────────────────
+tqdm==4.66.4
+
+# ── Notebook ─────────────────────────────────────────────────
+jupyter==1.0.0
+ipykernel==6.29.4
+
+# ── MLflow integration (for Airflow pipeline) ────────────────
+mlflow==2.13.0

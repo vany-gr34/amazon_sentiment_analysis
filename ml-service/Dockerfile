@@ -1,23 +1,23 @@
-
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system deps (for pymongo, mlflow, etc.)
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
     curl \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps first (layer cache optimization)
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+COPY app ./app
+COPY roberta_pyfunc.py ./roberta_pyfunc.py
 
-# Expose FastAPI port
 EXPOSE 8000
 
-# Run the API server
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

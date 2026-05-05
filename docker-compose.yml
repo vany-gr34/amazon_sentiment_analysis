@@ -24,8 +24,8 @@ x-airflow-common: &airflow-common
     - ./training-pipeline/src:/opt/airflow/src
     - ./logs/airflow:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
-    - ./training-pipeline/configs:/opt/airflow/configs  
-    - ./training-pipeline/data:/opt/airflow/data  #
+    - ./training-pipeline/configs:/opt/airflow/configs
+    - ./training-pipeline/data:/opt/airflow/data
   networks: [ml-net]
   depends_on:
     - postgres
@@ -69,12 +69,10 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"       # external access (host → kafka)
+      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      # INTERNAL: container-to-container communication
-      # EXTERNAL: host machine access (for debugging)
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
@@ -111,6 +109,7 @@ services:
     volumes:
       - spark-data:/opt/spark/data
       - ./spark-jobs:/opt/spark/jobs
+
   streaming-service:
     build:
       context: ./streaming-service
@@ -122,9 +121,11 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       MONGO_URI: mongodb://mongo:27017/${MONGO_DB}
       SPARK_MASTER: spark://spark-master:7077
+      ML_SERVICE_URL: http://ml-service:8000/predict-batch
     depends_on:
       - kafka
       - mongo
+      - ml-service
     restart: on-failure
 
   mongo:
@@ -136,7 +137,7 @@ services:
     environment:
       MONGO_INITDB_DATABASE: ${MONGO_DB}
     ports:
-      - "27017:27017"   # optional: for local debugging tools
+      - "27017:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -153,7 +154,7 @@ services:
     networks: [ml-net]
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./init-db:/docker-entrypoint-initdb.d   # creates mlflow + airflow DBs
+      - ./init-db:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -177,8 +178,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # MinIO Console UI
+      - "9000:9000"
+      - "9001:9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://minio:9000/minio/health/live"]
       interval: 10s
@@ -218,6 +219,7 @@ services:
     depends_on:
       - postgres
       - minio
+
   airflow-init:
     <<: *airflow-common
     container_name: airflow-init
@@ -245,7 +247,7 @@ services:
     container_name: airflow-webserver
     command: webserver
     ports:
-      - "8081:8080"   # Airflow UI (8081 to avoid conflict with Spark)
+      - "8081:8080"
     depends_on:
       - airflow-init
     healthcheck:
@@ -260,6 +262,7 @@ services:
     command: scheduler
     depends_on:
       - airflow-init
+
   training-pipeline:
     build:
       context: ./training-pipeline
@@ -272,7 +275,7 @@ services:
       MLFLOW_S3_ENDPOINT_URL: http://minio:9000
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-      SAMPLE_SIZE: ${SAMPLE_SIZE:-5000}  # Optional: limit rows for testing
+      SAMPLE_SIZE: ${SAMPLE_SIZE:-5000}
     volumes:
       - ./training-pipeline/data:/app/data
       - ./training-pipeline/src:/app/src
@@ -303,15 +306,12 @@ services:
       MONGO_URI: mongodb://mongo:27017/${MONGO_DB}
       MODEL_NAME: ${MODEL_NAME}
       MODEL_STAGE: ${MODEL_STAGE}
-      SKIP_MODEL_LOADING: "true"
-    
     ports:
-      - "8000:8000"   # FastAPI
+      - "8000:8000"
     depends_on:
-      #mlflow:
-        #condition: service_started
-      mongo:
-        condition: service_healthy
+      - mlflow
+      - minio
+      - mongo
     restart: on-failure
     healthcheck:
       test: ["CMD", "curl", "-f", "http://ml-service:8000/health"]
@@ -333,7 +333,7 @@ services:
       MB_DB_PASS: ${POSTGRES_PASSWORD}
       MB_DB_HOST: postgres
     ports:
-      - "3000:3000"   # Metabase UI
+      - "3000:3000"
     depends_on:
       - postgres
 
@@ -349,6 +349,6 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_SERVER_ROOT_URL: http://grafana:3001
     ports:
-      - "3001:3000"   # Grafana UI (3001 to avoid conflict with Metabase)
+      - "3001:3000"
     depends_on:
       - postgres

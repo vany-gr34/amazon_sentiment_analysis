@@ -212,3 +212,4 @@ __marimo__/
 #training data 
 training-pipelines/data/!*.csv
 logs/airflow/!*.logtraining-pipeline/data/Reviews.csv
+training-pipeline/data/Reviews.csv

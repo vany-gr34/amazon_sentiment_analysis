@@ -24,4 +24,4 @@ ENV CONFIG_PATH=/app/configs/training.yaml
 
 # Default: run full pipeline (used for one-shot container runs)
 # Override CMD in docker-compose to run a specific step
-CMD ["python", "src/pipeline.py"]
+CMD ["python", "src/pipeline.py"] 

@@ -1,0 +1,7 @@
+FROM apache/airflow:2.9.1
+
+USER root
+COPY training-pipeline/requirements.txt /tmp/requirements-training.txt
+
+USER airflow
+RUN pip install --no-cache-dir -r /tmp/requirements-training.txt

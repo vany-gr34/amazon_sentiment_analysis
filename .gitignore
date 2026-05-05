@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+
+
+#training data 
+training-pipelines/data/!*.csv
+logs/airflow/!*.logtraining-pipeline/data/Reviews.csv

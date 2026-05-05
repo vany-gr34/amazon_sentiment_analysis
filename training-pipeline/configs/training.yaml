@@ -1,0 +1,39 @@
+# training-pipeline/configs/training.yaml
+
+data:
+  path: data/Reviews.csv
+  sample_size: 100       # set to null for full dataset
+
+labels:
+  score_column: Score
+  classes:
+    - Negative
+    - Neutral
+    - Positive
+  # Assignment mapping: score<3=Neg, score=3=Neu, score>3=Pos
+
+vader:
+  pos_threshold:  0.05       # compound >= this → Positive
+  neg_threshold: -0.05       # compound <= this → Negative
+
+roberta:
+  model: cardiffnlp/twitter-roberta-base-sentiment
+  max_len: 512               # tokenizer hard limit — truncate silently
+
+mlflow:
+  tracking_uri: http://mlflow:5000
+  experiment: sentiment-analysis
+  run_name: vader-roberta-evaluation
+
+registry:
+  model_name: sentiment-roberta
+  # RoBERTa is registered as an artifact reference, not a sklearn model.
+  # Register only if RoBERTa weighted_f1 >= threshold.
+  metric_threshold: 0.80
+  stage: Staging
+
+artifacts:
+  results_csv:         results_df.csv
+  report_vader:        report_vader.json
+  report_roberta:      report_roberta.json
+  dataset_snapshot:    dataset.parquet

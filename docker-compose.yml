@@ -4,7 +4,10 @@
 # ==============================================================
 
 x-airflow-common: &airflow-common
-  image: apache/airflow:2.9.1
+  build:
+    context: .
+    dockerfile: Dockerfile.airflow
+  image: custom-airflow:2.9.1
   env_file: .env
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -15,11 +18,14 @@ x-airflow-common: &airflow-common
     MLFLOW_TRACKING_URI: http://mlflow:5000
     AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
     AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-    MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+    MLFLOW_S3_ENDPOINT_URL: ${MLFLOW_S3_ENDPOINT_URL}
   volumes:
     - ./dags:/opt/airflow/dags
+    - ./training-pipeline/src:/opt/airflow/src
     - ./logs/airflow:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
+    - ./training-pipeline/configs:/opt/airflow/configs  
+    - ./training-pipeline/data:/opt/airflow/data  #
   networks: [ml-net]
   depends_on:
     - postgres
@@ -194,7 +200,7 @@ services:
       "
 
   mlflow:
-    build: ./training-pipline
+    build: ./training-pipeline
     container_name: mlflow
     networks: [ml-net]
     command: >
@@ -254,6 +260,29 @@ services:
     command: scheduler
     depends_on:
       - airflow-init
+  training-pipeline:
+    build:
+      context: ./training-pipeline
+      dockerfile: Dockerfile
+    container_name: training-pipeline
+    networks: [ml-net]
+    env_file: .env
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      SAMPLE_SIZE: ${SAMPLE_SIZE:-5000}  # Optional: limit rows for testing
+    volumes:
+      - ./training-pipeline/data:/app/data
+      - ./training-pipeline/src:/app/src
+      - ./training-pipeline/configs:/app/configs
+      - ./training-pipeline/models:/app/models
+    depends_on:
+      - mlflow
+      - minio
+      - postgres
+    command: python /app/src/pipeline.py
 
   # ============================================================
   # LAYER 3: SERVING

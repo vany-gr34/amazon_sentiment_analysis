@@ -117,11 +117,14 @@ services:
     container_name: streaming-service
     networks: [ml-net]
     env_file: .env
+    volumes:
+      - ./training-pipeline/data:/app/data
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       MONGO_URI: mongodb://mongo:27017/${MONGO_DB}
       SPARK_MASTER: spark://spark-master:7077
       ML_SERVICE_URL: http://ml-service:8000/predict-batch
+      CSV_PATH: /app/data/Reviews.csv
     depends_on:
       - kafka
       - mongo

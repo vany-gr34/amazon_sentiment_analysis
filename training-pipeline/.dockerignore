@@ -1,0 +1,48 @@
+# Exclude local development files, caches, temporary artifacts, and IDE metadata.
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+*.egg-info/
+build/
+dist/
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+
+# Exclude output artifacts and large binary/model files.
+mlruns/
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.h5
+*.parquet
+*.pickle
+*.pkl
+*.joblib
+*.db
+
+# Exclude all CSV artifacts except the one training dataset required at build/runtime.
+*.csv
+!data/Reviews.csv
+
+# Keep source, config, requirements, and required dataset.
+!requirements.txt
+!src/
+!configs/
+!data/

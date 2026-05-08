@@ -1,0 +1,37 @@
+# Exclude development artifacts, caches, temporary files, and IDE metadata.
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+
+# Exclude local build/test artifacts and large binary files.
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.h5
+*.parquet
+*.pickle
+*.pkl
+*.joblib
+*.cache/
+*.ipynb
+
+# Keep only service source code and requirements.

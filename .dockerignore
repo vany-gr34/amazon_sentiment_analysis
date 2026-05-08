@@ -1,0 +1,7 @@
+# Root build context for custom Airflow image only.
+# Keep only the files needed for the Airflow Dockerfile.
+*
+!/.dockerignore
+!/Dockerfile.airflow
+!/training-pipeline/
+!/training-pipeline/requirements.txt

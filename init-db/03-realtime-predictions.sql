@@ -1,3 +1,6 @@
+-- Connect to mlplatform database
+\c mlplatform;
+
 CREATE TABLE IF NOT EXISTS realtime_predictions (
     id SERIAL PRIMARY KEY,
     batch_id BIGINT,
@@ -20,3 +23,9 @@ ON realtime_predictions (processed_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_realtime_predictions_prediction
 ON realtime_predictions (prediction);
+
+CREATE INDEX IF NOT EXISTS idx_realtime_predictions_batch_id
+ON realtime_predictions (batch_id);
+
+CREATE INDEX IF NOT EXISTS idx_realtime_predictions_score
+ON realtime_predictions (score);

@@ -16,6 +16,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY producer ./producer
 COPY spark_app ./spark_app
+COPY consumer.py ./
 
 ENV PYTHONPATH=/app
 

@@ -1,5 +1,5 @@
 # training-pipeline/requirements.txt
-
+--extra-index-url https://download.pytorch.org/whl/cpu
 # ── Core data ────────────────────────────────────────────────
 pandas==2.2.2
 numpy==1.26.4
@@ -11,7 +11,7 @@ nltk==3.8.1
 
 # ── NLP — RoBERTa ────────────────────────────────────────────
 transformers==4.41.2
-torch==2.3.0               # CPU; swap for torch==2.3.0+cu121 if GPU available
+torch==2.3.0+cpu              # CPU; swap for torch==2.3.0+cu121 if GPU available
 tqdm==4.66.4
 
 # ── MLflow + MinIO ───────────────────────────────────────────

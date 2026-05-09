@@ -1,7 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pymongo import MongoClient
 
 from app.config import settings
 from app.model import model_manager
@@ -51,6 +54,25 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+mongo_client = MongoClient(settings.MONGO_URI)
+mongo_db = mongo_client.get_default_database()
+
+
+def serialize_doc(doc: dict) -> dict:
+    return {
+        key: (str(value) if key == "_id" else value)
+        for key, value in doc.items()
+        if key != "_id" or True
+    }
+
 
 @app.get("/")
 def root():
@@ -61,7 +83,119 @@ def root():
         "health": "/health",
         "predict": "/predict",
         "predict_batch": "/predict-batch",
+        "analytics_summary": "/api/ui/summary",
+        "sentiment_distribution": "/api/ui/sentiment-distribution",
+        "processed_rate": "/api/ui/processed-rate",
+        "latest_predictions": "/api/ui/latest-predictions",
     }
+
+
+@app.get("/api/ui/summary")
+def analytics_summary():
+    scored = mongo_db.scored_reviews
+    failed = mongo_db.failed_records
+
+    total_reviews = scored.count_documents({})
+    failed_reviews = failed.count_documents({})
+
+    metrics = list(
+        scored.aggregate(
+            [
+                {
+                    "$match": {
+                        "confidence": {"$ne": None},
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": None,
+                        "avg_confidence": {"$avg": "$confidence"},
+                        "avg_latency": {"$avg": "$api_latency_ms"},
+                    }
+                },
+            ]
+        )
+    )
+
+    summary = metrics[0] if metrics else {}
+    return {
+        "total_reviews": total_reviews,
+        "failed_reviews": failed_reviews,
+        "avg_confidence": round(summary.get("avg_confidence", 0.0), 3),
+        "avg_latency_ms": round(summary.get("avg_latency", 0.0), 2),
+    }
+
+
+@app.get("/api/ui/sentiment-distribution")
+def sentiment_distribution():
+    scored = mongo_db.scored_reviews
+    pipeline = [
+        {"$group": {"_id": "$prediction", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+    ]
+    buckets = list(scored.aggregate(pipeline))
+    return [{"prediction": item["_id"], "count": item["count"]} for item in buckets]
+
+
+@app.get("/api/ui/processed-rate")
+def processed_rate(hours: int = 24):
+    scored = mongo_db.scored_reviews
+    pipeline = [
+        {
+            "$addFields": {
+                "processed_ts": {
+                    "$convert": {
+                        "input": "$processed_at",
+                        "to": "date",
+                        "onError": None,
+                        "onNull": None,
+                    }
+                }
+            }
+        },
+        {
+            "$match": {
+                "processed_ts": {"$ne": None},
+            }
+        },
+        {
+            "$project": {
+                "bucket": {
+                    "$dateToString": {
+                        "format": "%Y-%m-%d %H:00",
+                        "date": "$processed_ts",
+                    }
+                }
+            }
+        },
+        {
+            "$group": {
+                "_id": "$bucket",
+                "count": {"$sum": 1},
+            }
+        },
+        {"$sort": {"_id": 1}},
+    ]
+    series = list(scored.aggregate(pipeline))
+    return [{"time": item["_id"], "count": item["count"]} for item in series]
+
+
+@app.get("/api/ui/latest-predictions")
+def latest_predictions(limit: int = 10):
+    scored = mongo_db.scored_reviews
+    docs = scored.find({}, {"text": 1, "prediction": 1, "confidence": 1, "score": 1, "processed_at": 1}).sort("processed_at", -1).limit(limit)
+    results = []
+    for doc in docs:
+        results.append(
+            {
+                "text": doc.get("text", ""),
+                "prediction": doc.get("prediction", "unknown"),
+                "confidence": doc.get("confidence"),
+                "score": doc.get("score"),
+                "processed_at": doc.get("processed_at"),
+            }
+        )
+    return {"predictions": results}
 
 
 @app.get("/health", response_model=HealthResponse)

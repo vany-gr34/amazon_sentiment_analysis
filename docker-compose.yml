@@ -310,6 +310,8 @@ services:
       MONGO_URI: mongodb://mongo:27017/${MONGO_DB}
       MODEL_NAME: ${MODEL_NAME}
       MODEL_STAGE: ${MODEL_STAGE}
+    volumes:
+      - ./ml-service:/app
     ports:
       - "8000:8000"
     depends_on:
@@ -329,6 +331,7 @@ services:
     networks: [ml-net]
     volumes:
       - metabase-data:/metabase-data
+      - ./metabase/config:/metabase-init
     environment:
       MB_DB_TYPE: postgres
       MB_DB_DBNAME: ${METABASE_DB}
@@ -336,10 +339,13 @@ services:
       MB_DB_USER: ${POSTGRES_USER}
       MB_DB_PASS: ${POSTGRES_PASSWORD}
       MB_DB_HOST: postgres
+      # MongoDB connection for data analysis
+      MONGO_URI: mongodb://mongo:27017/${MONGO_DB}
     ports:
       - "3000:3000"
     depends_on:
       - postgres
+      - mongo
 
   grafana:
     image: grafana/grafana:10.4.2
@@ -348,6 +354,9 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      
+      
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}

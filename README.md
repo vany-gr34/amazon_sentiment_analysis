@@ -1,351 +1,170 @@
-# Technical Design Document
+# Amazon Sentiment Analysis Platform
 
-## Real-Time NLP Streaming Pipeline with MLOps Integration
+A comprehensive real-time NLP streaming pipeline for sentiment analysis on Amazon product reviews, featuring MLOps integration, scalable architecture, and interactive dashboards.
 
----
-  
-## 1. Objective
+##  Features
 
-Design and implement a scalable system that:
+- **Real-time Streaming**: Ingest and process Amazon review data in real-time using Kafka and Spark Streaming
+- **ML Inference**: Perform sentiment analysis using pre-trained RoBERTa models served via FastAPI
+- **MLOps Pipeline**: Complete model lifecycle management with MLflow, including training, versioning, and deployment
+- **Data Visualization**: Interactive dashboards with Grafana and Metabase for real-time and historical analytics
+- **Scalable Architecture**: Containerized services with Docker Compose for easy deployment
+- **Monitoring & Observability**: Built-in logging, metrics collection, and model performance tracking
 
-* Ingests streaming data in real time
-* Processes and enriches the data
-* Performs NLP inference per event
-* Serves results to real-time and historical dashboards
-* Ensures DataOps and MLOps best practices
+## Architecture
 
----
+The platform consists of three main layers:
 
-## 2. System Overview
-
-The architecture is divided into two main planes:
-
-### 2.1 Real-Time Processing Plane
-
-Handles live data ingestion, transformation, and inference.
-
-### 2.2 Batch / Control Plane
-
-Handles model training, data aggregation, monitoring, and recovery.
-
----
-
-## 3. Technology Stack
-
-### Core Components
-
-* Apache Kafka — Event streaming platform
-* Apache Spark Streaming — Real-time data processing
-* FastAPI — Model serving layer
-* MongoDB — Operational (real-time) storage
-* Apache Superset — Data visualization
-
-### MLOps & DataOps
-
-* MLflow — Model tracking and registry
-* Apache Airflow — Workflow orchestration
-* Evidently AI — Model monitoring
-
-### Optional (Recommended)
-
-* ClickHouse / Apache Druid — Analytical database
-
----
-
-## 4. High-Level Architecture
-
-### 4.1 Real-Time Flow
-
+### Real-Time Processing Plane
 ```
-Data Source → Kafka → Spark Streaming → ML Service → MongoDB → Dashboard
+Data Source → Kafka → Spark Streaming → ML Service → MongoDB → Dashboards
 ```
 
-### 4.2 Batch / Control Flow
-
+### Batch/Control Plane
 ```
 Airflow → Spark Batch → Model Training → MLflow → ML Service
-         → Data Aggregation → Analytical DB → Superset
+       → Data Aggregation → PostgreSQL → Dashboards
 ```
 
----
+### Key Components
+- **Apache Kafka**: Event streaming backbone
+- **Apache Spark**: Real-time data processing and batch training
+- **FastAPI**: Model serving with REST API
+- **MongoDB**: Operational storage for real-time data
+- **PostgreSQL**: Analytical storage for historical data
+- **MLflow**: Model tracking and registry
+- **Airflow**: Workflow orchestration
+- **Grafana/Metabase**: Data visualization dashboards
 
-## 5. Component Responsibilities
+##  Prerequisites
 
-### 5.1 Apache Kafka (Ingestion Layer)
+- Docker and Docker Compose
+- Python 3.8+ (for local development)
+- Git
 
-* Acts as the event streaming backbone
-* Decouples producers and consumers
-* Stores raw and intermediate topics
+##  Installation
 
-Topics:
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd amazon_sentiment_analysis
+   ```
 
-* raw-events
-* processed-events
-* predictions
+2. **Set up environment variables**
+   
+    create .env
+   
 
----
+   Add the following required variables to `.env`:
+   ```env
+   POSTGRES_USER=your_postgres_user
+   POSTGRES_PASSWORD=your_postgres_password
+   POSTGRES_DB=your_postgres_db
+   AIRFLOW_DB=your_airflow_db
+   MLFLOW_DB=your_mlflow_db
+   METABASE_DB=your_metabase_db
+   MINIO_ROOT_USER=your_minio_user
+   MINIO_ROOT_PASSWORD=your_minio_password
+   MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+   MLFLOW_TRACKING_URI=http://mlflow:5000
+   AIRFLOW_FERNET_KEY=your_generated_fernet_key
+   AIRFLOW_SECRET_KEY=your_airflow_secret
+   AIRFLOW_ADMIN_USER=admin
+   AIRFLOW_ADMIN_PASSWORD=admin
+   GRAFANA_ADMIN_USER=admin
+   GRAFANA_ADMIN_PASSWORD=admin
+   MODEL_NAME=sentiment_model
+   MODEL_STAGE=Production
+   MONGO_DB=sentiment_db
+   ```
 
-### 5.2 Apache Spark Streaming (Processing Layer)
+   Generate Airflow Fernet key:
+   ```bash
+   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+   ```
 
-* Consumes data from Kafka
-* Performs:
+3. **Start the platform**
+   ```bash
+   docker compose up -d
+   ```
 
-  * Data cleaning
-  * Feature extraction
-  * Transformation
-* Sends requests to ML service
-* Outputs enriched data
+## 🚀 Usage
 
----
+### Verify Services
+Check these endpoints to ensure all services are running:
 
-### 5.3 ML Service (Inference Layer)
+- **FastAPI Model Service**: http://localhost:8000/health
+- **Spark UI**: http://localhost:8080
+- **Airflow**: http://localhost:8081
+- **MLflow**: http://localhost:5000
+- **MinIO Console**: http://localhost:9001
+- **Grafana**: http://localhost:3001
+- **Metabase**: http://localhost:3000
 
-Implemented using FastAPI.
+### Run Model Training
+1. Open Airflow at http://localhost:8081
+2. Enable and trigger the `model_training_pipeline` DAG
 
-Responsibilities:
-
-* Load model from MLflow
-* Validate input schema
-* Perform inference
-* Return predictions
-* Log inputs/outputs for monitoring
-
-#### API Contract
-
-**POST /predict**
-
-Input:
-
-```json
-{
-  "text": "input string"
-}
+### Test Sentiment Analysis
+```bash
+curl -X POST "http://localhost:8000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{"text": "This product is amazing!"}'
 ```
 
-Output:
+### View Dashboards
+- **Grafana**: Real-time metrics and visualizations
+- **Metabase**: Historical analytics and custom dashboards
 
-```json
-{
-  "prediction": "label",
-  "confidence": 0.95,
-  "model_version": "v1"
-}
-```
-
----
-
-### 5.4 MongoDB (Operational Storage)
-
-* Stores recent events and predictions
-* Supports low-latency reads
-* Feeds real-time dashboards
-
----
-
-### 5.5 Analytical Database (Optional but Recommended)
-
-* Stores historical data
-* Supports aggregations and analytics
-* Feeds Superset dashboards
-
----
-
-### 5.6 Apache Superset (Visualization)
-
-* Real-time dashboards (via MongoDB or streaming)
-* Historical dashboards (via analytical DB)
-
----
-
-### 5.7 Apache Airflow (Orchestration Layer)
-
-**Not part of streaming pipeline.**
-
-Used for:
-
-* Model training workflows
-* Batch data processing
-* Data quality checks
-* Backfilling and recovery
-
----
-
-## 6. MLOps Architecture
-
-### 6.1 Model Lifecycle
+##  Project Structure
 
 ```
-Data → Training → Evaluation → Registration → Deployment → Monitoring
-```
-
-### 6.2 MLflow Integration
-
-* Track experiments
-* Version models
-* Manage staging/production lifecycle
-
----
-
-### 6.3 Feature Consistency
-
-* Ensure identical transformations in:
-
-  * training
-  * inference
-
-(Optional: Feature store integration)
-
----
-
-### 6.4 Monitoring
-
-Track:
-
-* Data drift
-* Prediction drift
-* Model performance
-
-Tools:
-
-* Evidently AI
-* Logging + metrics
-
----
-
-### 6.5 Retraining Strategy
-
-Triggered by:
-
-* Scheduled intervals (daily/weekly)
-* Performance degradation
-* Data drift detection
-
-Executed via Airflow DAGs.
-
----
-
-## 7. DataOps Considerations
-
-### 7.1 Data Quality
-
-* Schema validation
-* Missing value checks
-* Consistency validation
-
-### 7.2 Reliability
-
-* Kafka ensures fault tolerance
-* Replay capability via topics
-
-### 7.3 Observability
-
-* Logging at each stage
-* Metrics collection (latency, throughput)
-
----
-
-## 8. Airflow DAGs
-
-### 8.1 Model Training DAG
-
-* Extract historical data
-* Preprocess (Spark batch)
-* Train model
-* Evaluate
-* Register in MLflow
-* Deploy model
-
----
-
-### 8.2 Batch Aggregation DAG
-
-* Aggregate daily metrics
-* Compute KPIs
-* Store in analytical DB
-
----
-
-### 8.3 Data Backfill DAG
-
-* Replay Kafka data
-* Recompute features
-* Restore system consistency
-
----
-
-## 9. Deployment Architecture
-
-### 9.1 Containerization
-
-Use Docker for all services:
-
-* Kafka
-* Spark
-* ML service
-* MongoDB
-* Superset
-
-### 9.2 Orchestration (Optional)
-
-* Kubernetes for scaling
-* Or Docker Compose for initial setup
-
----
-
-## 10. Project Structure
-
-```
-project/
-├── streaming-service/
-├── ml-service/
-├── training-pipeline/
-├── shared/
-├── docker/
+amazon_sentiment_analysis/
+├── dags/                    # Airflow DAGs
+├── docker-compose.yml       # Docker Compose configuration
+├── frontend/                # Web dashboards
+├── grafana/                 # Grafana dashboards and provisioning
+├── init-db/                 # Database initialization scripts
+├── logs/                    # Application logs
+├── metabase/                # Metabase configuration
+├── ml-service/              # FastAPI model serving service
+├── plugins/                 # Custom plugins
+├── research/                # Research notebooks and experiments
+├── spark-jobs/              # Spark streaming jobs
+├── streaming-service/       # Kafka consumer and producer services
+├── training-pipeline/       # Model training pipeline
 └── README.md
 ```
 
----
+##  Development
 
-## 11. Key Design Principles
+### Local Development Setup
+1. Install Python dependencies for each service
+2. Set up local databases (PostgreSQL, MongoDB)
+3. Configure environment variables for local development
+4. Run services individually or use Docker Compose
 
-* Separation of concerns:
+### Adding New Features
+- Follow the modular architecture
+- Update Docker configurations
+- Add tests for new components
+- Update documentation
 
-  * Streaming ≠ ML serving ≠ Training
-* Stateless ML service
-* Decoupled architecture via Kafka
-* Dual storage strategy (real-time + analytical)
-* Monitoring-first design
+##  Contributing
 
----
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-## 12. Risks and Mitigations
+## License
 
-| Risk               | Mitigation                      |
-| ------------------ | ------------------------------- |
-| Model drift        | Monitoring + retraining         |
-| Data inconsistency | Schema validation               |
-| Pipeline failure   | Kafka replay + Airflow backfill |
-| Latency issues     | Optimize Spark + async ML calls |
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
+## Additional Documentation
 
-## 13. Future Improvements
-
-* Introduce feature store
-* Add real-time monitoring dashboards
-* Implement canary model deployment
-* Use Kubernetes for scaling
-* Add alerting system
-
----
-
-## 14. Conclusion
-
-This architecture provides:
-
-* Scalable real-time processing
-* Clean separation between DataOps and MLOps
-* Robust monitoring and retraining capabilities
-* Flexibility for future expansion
-
-The system is production-ready with incremental complexity, allowing a minimal viable implementation first, followed by gradual enhancements.
+- [How to Run](HOW_TO_RUN.md) - Detailed setup and running instructions
+- [Environment Setup](ENVIRONMENT_SETUP.md) - Architecture and configuration details
+- [Project Structure](PROJECT_STRUCTURE.md) - Detailed component descriptions
+- [Progress Summary](PROGRESS_SUMMARY.md) - Development progress and milestones

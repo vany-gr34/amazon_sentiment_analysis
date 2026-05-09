@@ -2,6 +2,120 @@
 
 This repository implements a real-time NLP streaming pipeline with a separate ML training and serving stack.
 
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      STREAMING & INFERENCE LAYER                            │
+│                                                                               │
+│  [CSV Dataset]                                                               │
+│       │                                                                       │
+│       ▼                                                                       │
+│  Kafka Producer ──► Kafka Topic (kafka:29092)                                │
+│                          │                                                    │
+│          ┌───────────────┼───────────────┐                                   │
+│          ▼               ▼               ▼                                    │
+│  Streaming Service │ Spark Master  │ Spark Worker                            │
+│  (spark:3.5.0)    │ (spark://     │ (executor)                              │
+│                   │  spark-master │                                          │
+│                   │    :7077)     │                                          │
+│          │               │               │                                   │
+│          │               └───────┬───────┘                                   │
+│          │                       │                                           │
+│          │                   Preprocess + Batch                              │
+│          │                       │                                           │
+│          └───────────────┬───────┘                                           │
+│                          │                                                    │
+│                          ▼                                                    │
+│            FastAPI ML-Service (ml-service:8000)                              │
+│             /predict-batch ◄─── [loads model from MLflow]                    │
+│                          │                                                    │
+│          ┌───────────────┴───────────────┐                                   │
+│          ▼                               ▼                                    │
+│      MongoDB                         PostgreSQL                              │
+│   (mongo:27017)              (postgres:5432)                                 │
+│   [predictions]              [metrics & metadata]                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    TRAINING & MODEL MANAGEMENT LAYER                         │
+│                                                                               │
+│  Airflow Orchestrator (airflow-webserver:8080)                               │
+│         │                                                                     │
+│         ├──► Triggers Training Pipeline (DAG: training_pipeline.py)          │
+│         │                                                                     │
+│         ▼                                                                     │
+│   Training Jobs                                                              │
+│   ├─ ingest.py          [reads data from MongoDB or CSV]                     │
+│   ├─ preprocess.py      [text cleaning, normalization]                       │
+│   ├─ train.py           [VADER + RoBERTa sentiment models]                   │
+│   ├─ evaluate.py        [metrics: accuracy, F1, precision, recall]           │
+│   └─ register.py        [MLflow model registry]                              │
+│         │                                                                     │
+│         │               ┌─────────────────────┐                              │
+│         ├──────────────►│   MLflow Server     │                              │
+│         │               │  (mlflow:5000)      │                              │
+│         │               │  ┌─────────────────┥                               │
+│         │               │  │ Experiment       │                              │
+│         │               │  │ Tracking & Run   │                              │
+│         │               │  └─────────────────┤                               │
+│         │               │                     │                              │
+│         │               └──────────┬──────────┘                               │
+│         │                          │                                         │
+│         │                      Artifacts                                     │
+│         │                          │                                         │
+│         │                          ▼                                         │
+│         │                    MinIO S3 Storage                                │
+│         │                   (minio:9000)                                     │
+│         │                [trained models,                                    │
+│         │                 configs, metrics]                                  │
+│         │                                                                     │
+│         └──────────────────────────────┐                                     │
+│                                         │                                    │
+│                              PostgreSQL │                                    │
+│                           (postgres:5432)                                    │
+│                         [Airflow DB,                                         │
+│                          MLflow Backend,                                    │
+│                          Metrics Store] │                                    │
+│                                         │                                    │
+│                                    Zookeeper                                │
+│                                (zookeeper:2181)                             │
+│                          [Kafka cluster coordination]                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    OBSERVABILITY & ANALYTICS LAYER                           │
+│                                                                               │
+│        Grafana (grafana:3001)          Metabase (metabase:3000)              │
+│              │                                │                              │
+│              ├──► PostgreSQL            ├──► MongoDB                         │
+│              │    (real-time metrics,   │    (prediction analytics)          │
+│              │     streaming stats)     │                                    │
+│              │                          │                                    │
+│              └──► MongoDB               └──► PostgreSQL                      │
+│                   (prediction events)        (Metabase metadata)             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         NETWORK & HEALTH CHECKS                              │
+│                                                                               │
+│  All services communicate over Docker network: ml-net (bridge driver)         │
+│  Internal service discovery via container names (e.g., kafka:29092)          │
+│  Health checks configured for: Zookeeper, Kafka, PostgreSQL, MongoDB        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Data Flow Summary
+
+1. **Ingestion**: CSV dataset fed to Kafka producer at controlled rate
+2. **Streaming**: Spark Structured Streaming consumes Kafka, preprocesses in batches
+3. **Inference**: Spark batches call FastAPI `/predict-batch` for sentiment prediction
+4. **Storage**: Predictions written to MongoDB (operational) & PostgreSQL (metrics)
+5. **Training**: Airflow orchestrates batch training pipeline on schedule
+6. **Tracking**: MLflow logs experiments, models, metrics; stores artifacts in MinIO
+7. **Serving**: ML service loads models from MLflow, serves predictions to Spark
+8. **Monitoring**: Grafana consumes PostgreSQL for real-time metrics; Metabase analyzes MongoDB prediction data
+
 ## Root files
 
 - `docker-compose.yml` - Docker Compose definition for the full platform, including Airflow, Postgres, MLflow, MinIO, Kafka, Spark, MongoDB, and services.
@@ -83,3 +197,21 @@ The system is built as a multi-container platform:
 3. The `training-pipeline/` directory contains the actual ML logic, config, and dependencies.
 4. `ml-service/` exposes inference results after models are tracked and registered with MLflow.
 5. `streaming-service/` and `spark-jobs/` handle the streaming ingestion and processing side.
+
+
+
+
+CSV Dataset
+    ↓
+Kafka Producer (reads CSV, publishes JSON to Kafka topic)
+    ↓
+Kafka Topic (message queue)
+    ↓
+Spark Structured Streaming (consumes Kafka, preprocesses, batches)
+    ↓
+FastAPI /predict-batch (infers sentiment with RoBERTa model)
+    ↓
+MongoDB (operational store)
+PostgreSQL (analytics + metrics)
+    ↓
+Grafana (real-time visualization)

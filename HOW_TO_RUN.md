@@ -125,10 +125,64 @@ docker exec -it mongo mongosh --eval "db.getMongo().getDB('$(grep -oP '(?<=MONGO
 docker compose up -d metabase grafana
 ```
 
+### Metabase Setup (Analytics Dashboard)
+
+**IMPORTANT**: Metabase requires web-based initial setup before connecting to databases.
+
+1. **Start Metabase**
+   ```bash
+   docker compose up -d metabase
+   ```
+
+2. **Complete Web Setup First**
+   - Go to `http://localhost:3000`
+   - Complete the "Welcome to Metabase" setup wizard
+   - Create an admin account
+   - Skip adding a database for now
+
+3. **Connect to MongoDB**
+   ```bash
+   ./metabase/setup_mongodb.sh
+   ```
+   Or follow the manual steps in `metabase/MANUAL_SETUP.md`
+
+4. **Alternative: Manual Setup**
+   - Admin → Databases → Add database
+   - Select "MongoDB" as database type
+   - Configure:
+     - **Name**: MongoDB - Sentiment Analysis
+     - **Host**: mongo
+     - **Port**: 27017
+     - **Database name**: mlplatform
+     - **SSL**: Disabled
+
 Open the dashboards:
 
-- Grafana: `http://localhost:3001`
-- Metabase: `http://localhost:3000`
+- Grafana: `http://localhost:3001` (Real-time metrics)
+- Metabase: `http://localhost:3000` (Analytics & historical data)
+
+### Create Metabase Dashboards
+
+Once Metabase is connected to MongoDB, you can create comprehensive analytics dashboards:
+
+1. **Explore Your Data**
+   - Go to `http://localhost:3000`
+   - Click "Browse data" → "MongoDB - Sentiment Analysis"
+   - Explore the collections: `scored_reviews`, `processed_events`, `failed_records`
+
+2. **Create Your First Dashboard**
+   - Follow the detailed guide in `metabase/DASHBOARD_GUIDE.md`
+   - Or import the sample dashboard from `metabase/sample-dashboard.json`
+   - Or open your own lightweight UI from `frontend/index.html`
+     - `frontend/realtime.html` — realtime model and streaming view
+     - `frontend/analytics.html` — MongoDB analytics view
+
+3. **Key Metrics to Track**
+   - Sentiment distribution (positive/negative/neutral)
+   - Model confidence scores
+   - API response times
+   - Processing rates over time
+   - Error rates and failed records
 
 ## 7. Stop the platform
 

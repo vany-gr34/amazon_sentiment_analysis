@@ -1,0 +1,35 @@
+{
+  "uid": "streaming-metrics",
+  "title": "Streaming Pipeline Health Dashboard",
+    "description": "Kafka and Spark streaming metrics",
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Different Streaming Metrics",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "time_series",
+            "rawSql": "SELECT metric_time as time, metric_value as value, metric_name FROM streaming_metrics WHERE metric_time > NOW() - INTERVAL '1 hour' ORDER BY time",
+            "editorMode": "code"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Sentiment Metrics by Batch",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [{
+          "refId": "A",
+          "format": "table",
+          "rawSql": "SELECT batch_id, metric_time, metric_name, metric_value, sentiment FROM streaming_metrics ORDER BY metric_time DESC LIMIT 50",
+          "editorMode": "code"
+        }]
+      }
+    ]
+}
+}

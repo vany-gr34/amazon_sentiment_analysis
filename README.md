@@ -149,7 +149,7 @@ amazon_sentiment_analysis/
 ## team members
 - Hamdan Kaouthar
 - AMAMI YOUSRA
-- Hahati Oumayma
+- Hahati Oumaima
 - Rayane Mahmoud
 
 ##  Development

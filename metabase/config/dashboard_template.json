@@ -1,0 +1,119 @@
+{
+  "name": "Amazon Sentiment Analysis Analytics",
+  "description": "Comprehensive analytics dashboard for sentiment analysis predictions stored in MongoDB",
+  "cards": [
+    {
+      "name": "Total Predictions",
+      "description": "Total number of sentiment predictions processed",
+      "dataset_query": {
+        "database": "{{mongo_db_id}}",
+        "type": "query",
+        "query": {
+          "source-table": "{{predictions_collection_id}}",
+          "aggregation": [["count"]]
+        }
+      },
+      "display": "scalar",
+      "visualization_settings": {
+        "scalar.field": "count",
+        "scalar.compact": true
+      }
+    },
+    {
+      "name": "Sentiment Distribution",
+      "description": "Breakdown of predictions by sentiment type",
+      "dataset_query": {
+        "database": "{{mongo_db_id}}",
+        "type": "query",
+        "query": {
+          "source-table": "{{predictions_collection_id}}",
+          "aggregation": [["count"]],
+          "breakout": [["field", "{{prediction_field_id}}", null]]
+        }
+      },
+      "display": "pie",
+      "visualization_settings": {
+        "pie.dimension": "{{prediction_field_id}}",
+        "pie.metric": "count",
+        "pie.show_legend": true
+      }
+    },
+    {
+      "name": "Predictions Over Time",
+      "description": "Sentiment predictions trend over time",
+      "dataset_query": {
+        "database": "{{mongo_db_id}}",
+        "type": "query",
+        "query": {
+          "source-table": "{{predictions_collection_id}}",
+          "aggregation": [["count"]],
+          "breakout": [["datetime-field", ["field", "{{timestamp_field_id}}", null], "day"]]
+        }
+      },
+      "display": "line",
+      "visualization_settings": {
+        "graph.dimensions": ["{{timestamp_field_id}}"],
+        "graph.metrics": ["count"]
+      }
+    },
+    {
+      "name": "Average Confidence by Sentiment",
+      "description": "Model confidence levels for each sentiment type",
+      "dataset_query": {
+        "database": "{{mongo_db_id}}",
+        "type": "query",
+        "query": {
+          "source-table": "{{predictions_collection_id}}",
+          "aggregation": [["avg", ["field", "{{confidence_field_id}}", null]]],
+          "breakout": [["field", "{{prediction_field_id}}", null]]
+        }
+      },
+      "display": "bar",
+      "visualization_settings": {
+        "graph.dimensions": ["{{prediction_field_id}}"],
+        "graph.metrics": ["avg"]
+      }
+    },
+    {
+      "name": "Recent Predictions Table",
+      "description": "Latest sentiment predictions with details",
+      "dataset_query": {
+        "database": "{{mongo_db_id}}",
+        "type": "query",
+        "query": {
+          "source-table": "{{predictions_collection_id}}",
+          "limit": 100,
+          "order-by": [["desc", ["field", "{{timestamp_field_id}}", null]]]
+        }
+      },
+      "display": "table",
+      "visualization_settings": {
+        "table.pivot": false
+      }
+    },
+    {
+      "name": "Confidence vs Original Rating",
+      "description": "Correlation between model confidence and original Amazon ratings",
+      "dataset_query": {
+        "database": "{{mongo_db_id}}",
+        "type": "query",
+        "query": {
+          "source-table": "{{predictions_collection_id}}",
+          "filter": ["not-null", ["field", "{{score_field_id}}", null]]
+        }
+      },
+      "display": "scatter",
+      "visualization_settings": {
+        "scatter.bubble": "count",
+        "scatter.x": "{{score_field_id}}",
+        "scatter.y": "{{confidence_field_id}}"
+      }
+    }
+  ],
+  "tabs": [],
+  "width": "fixed",
+  "auto_apply_filters": true,
+  "collection_position": null,
+  "enable_embedding": false,
+  "embedding_params": null
+}

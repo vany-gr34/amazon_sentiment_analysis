@@ -1,0 +1,156 @@
+{
+  "name": "Sentiment Analysis Overview",
+  "description": "Real-time sentiment analysis metrics and performance dashboard",
+  "cards": [
+    {
+      "name": "Total Reviews Processed",
+      "description": "Total number of reviews analyzed",
+      "dataset_query": {
+        "database": 2,
+        "query": {
+          "source-table": "scored_reviews",
+          "aggregation": [["count"]]
+        },
+        "type": "query"
+      },
+      "display": "scalar",
+      "visualization_settings": {
+        "scalar.field": "count",
+        "scalar.compact": true
+      },
+      "sizeX": 6,
+      "sizeY": 4,
+      "row": 0,
+      "col": 0
+    },
+    {
+      "name": "Sentiment Distribution",
+      "description": "Breakdown of positive, negative, and neutral sentiments",
+      "dataset_query": {
+        "database": 2,
+        "query": {
+          "source-table": "scored_reviews",
+          "aggregation": [["count"]],
+          "breakout": [["field", "prediction", null]]
+        },
+        "type": "query"
+      },
+      "display": "pie",
+      "visualization_settings": {
+        "pie.dimension": "prediction",
+        "pie.metric": "count",
+        "pie.colors": {
+          "positive": "#10B981",
+          "negative": "#EF4444",
+          "neutral": "#F59E0B"
+        }
+      },
+      "sizeX": 6,
+      "sizeY": 8,
+      "row": 0,
+      "col": 6
+    },
+    {
+      "name": "Average Confidence Score",
+      "description": "Model confidence in predictions",
+      "dataset_query": {
+        "database": 2,
+        "query": {
+          "source-table": "scored_reviews",
+          "aggregation": [["avg", ["field", "confidence", null]]]
+        },
+        "type": "query"
+      },
+      "display": "scalar",
+      "visualization_settings": {
+        "scalar.field": "avg",
+        "scalar.compact": true,
+        "scalar.decimals": 3
+      },
+      "sizeX": 6,
+      "sizeY": 4,
+      "row": 4,
+      "col": 0
+    },
+    {
+      "name": "Average API Latency",
+      "description": "Average response time in milliseconds",
+      "dataset_query": {
+        "database": 2,
+        "query": {
+          "source-table": "scored_reviews",
+          "aggregation": [["avg", ["field", "api_latency_ms", null]]]
+        },
+        "type": "query"
+      },
+      "display": "scalar",
+      "visualization_settings": {
+        "scalar.field": "avg",
+        "scalar.compact": true,
+        "scalar.decimals": 0,
+        "scalar.suffix": "ms"
+      },
+      "sizeX": 6,
+      "sizeY": 4,
+      "row": 8,
+      "col": 0
+    },
+    {
+      "name": "Processing Rate Over Time",
+      "description": "Number of reviews processed per hour",
+      "dataset_query": {
+        "database": 2,
+        "query": {
+          "source-table": "scored_reviews",
+          "aggregation": [["count"]],
+          "breakout": [["datetime-field", ["field", "processed_at", null], "hour"]]
+        },
+        "type": "query"
+      },
+      "display": "line",
+      "visualization_settings": {
+        "graph.dimensions": ["processed_at"],
+        "graph.metrics": ["count"],
+        "graph.x_axis.title_text": "Time",
+        "graph.y_axis.title_text": "Reviews Processed"
+      },
+      "sizeX": 12,
+      "sizeY": 8,
+      "row": 12,
+      "col": 0
+    },
+    {
+      "name": "Sentiment by Rating",
+      "description": "How sentiment predictions relate to original star ratings",
+      "dataset_query": {
+        "database": 2,
+        "query": {
+          "source-table": "scored_reviews",
+          "aggregation": [["count"]],
+          "breakout": [
+            ["field", "score", null],
+            ["field", "prediction", null]
+          ]
+        },
+        "type": "query"
+      },
+      "display": "bar",
+      "visualization_settings": {
+        "graph.dimensions": ["score"],
+        "graph.metrics": ["count"],
+        "graph.x_axis.title_text": "Star Rating",
+        "graph.y_axis.title_text": "Count",
+        "stackable.stack_type": "stacked"
+      },
+      "sizeX": 12,
+      "sizeY": 8,
+      "row": 20,
+      "col": 0
+    }
+  ],
+  "tabs": [],
+  "width": "fixed",
+  "auto_apply_filters": true,
+  "param_values": {},
+  "param_fields": {}
+}

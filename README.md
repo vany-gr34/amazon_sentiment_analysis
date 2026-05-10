@@ -15,6 +15,9 @@ A comprehensive real-time NLP streaming pipeline for sentiment analysis on Amazo
 
 The platform consists of three main layers:
 
+### System Architecture Diagram
+![System Architecture](picutres/systemarchitecture.png)
+
 ### Real-Time Processing Plane
 ```
 Data Source → Kafka → Spark Streaming → ML Service → MongoDB → Dashboards
@@ -88,7 +91,7 @@ Airflow → Spark Batch → Model Training → MLflow → ML Service
    docker compose up -d
    ```
 
-## 🚀 Usage
+##  Usage
 
 ### Verify Services
 Check these endpoints to ensure all services are running:
@@ -115,6 +118,14 @@ curl -X POST "http://localhost:8000/predict" \
 ### View Dashboards
 - **Grafana**: Real-time metrics and visualizations
 - **Metabase**: Historical analytics and custom dashboards
+
+#### Real-Time Dashboard (Grafana)
+![Real-Time Dashboard](picutres/realtimedashbored.png)
+
+#### Analytics Dashboard (Metabase)
+![Analytics Dashboard 1](picutres/analytics.png)
+
+![Analytics Dashboard 2](picutres/analytics2.png)
 
 ##  Project Structure
 

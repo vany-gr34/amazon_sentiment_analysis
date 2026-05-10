@@ -146,6 +146,11 @@ amazon_sentiment_analysis/
 ├── training-pipeline/       # Model training pipeline
 └── README.md
 ```
+## team members
+- Hamdan Kaouthar
+- AMAMI YOUSRA
+- Hahati Oumayma
+- Rayane Mahmoud
 
 ##  Development
 
@@ -172,6 +177,7 @@ amazon_sentiment_analysis/
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 
 ## Additional Documentation
 
